@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task manager</title>
+  <meta name="description" content="Un gestionnaire de tâches, pour vous aider au quotidien">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  
+  <header>
+    <h1>Task manager</h1>
+  </header>
+
+  <main>
+
+    <div class="create-task-container">
+      <button>nouvelle tâche</button>
+    </div>
+
+    <div class="message success" hidden>
+      la nouvelle tâche a bien été ajoutée
+    </div>
+    <div class="message danger" hidden>
+      oops, impossible de sauvegarder la tâche
+    </div>
+    
+    <ul class="tasklist">
+      <!-- l'insertion des tâches est dynamique -->
+    </ul>
+
+    <div class="modal-dialog">
+      <form>
+        <h2>nouvelle tâche</h2>
+        <label for="task-title" class="screen-reader-only">titre de la tâche</label>
+        <input name= "id" id="task-id" type="hidden">
+        <input name= "title" id="task-title" placeholder="titre de la tâche..." type="text" required>
+        <button>ajouter</button>
+      </form>
+    </div>
+
+  </main>
+
+  <script>
+    function init() {
+        document.querySelector('.create-task-container button')
+                .addEventListener('click', e => {
+                    document.querySelector('.modal-dialog').classList.add('show');
+                });
+        
+        document.querySelector('.modal-dialog form')
+                .addEventListener('submit', e => {
+                    e.preventDefault();
+                    const data = {
+                        id: document.querySelector('#task-id').value,
+                        title: document.querySelector('#task-title').value
+                    };
+                    createOrUpdateApi(data);
+                    document.querySelector('.modal-dialog').classList.remove('show');
+                });
+
+        getListApi();
+    }
+
+    // ici on récupère du HTML que l'on injecte dans le document
+    async function getListApi() {
+        fetch('http://127.0.0.1:8000')
+            .then(response => {
+                return response.text();
+            })
+            .then(html => {
+                document.querySelector('.tasklist').outerHTML = html;
+
+                // gestion des boutons delete
+                document.querySelectorAll('.delete').forEach(el => {
+                    el.addEventListener('click', e => {
+                        deleteApi(e.currentTarget.parentElement.dataset.id);
+                    });
+                });
+            });
+    }
+
+    // suppression en utilisant POST
+    async function deleteApi(id) {
+        fetch('http://127.0.0.1:8000', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'delete',
+                id: id
+            })
+        })
+        .then(response => {
+            if (response.ok) {
+                document.querySelector('[data-id="' + id + '"]').remove();
+            }
+        });
+    }
+
+    // création d'une tâche
+    async function createOrUpdateApi(data) {
+
+        data.action = data.id ? 'update' : 'create';
+
+        fetch('http://127.0.0.1:8000', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.text();
+            }
+            return null;
+        })
+        .then(html => {
+            if (html) {
+                // insertion de la nouvelle tâche
+                document.querySelector('.tasklist').insertAdjacentHTML('beforeend', html);
+                // ah ben oui, il faut ajouter le clic sur le bouton delete
+                document.querySelector('.tasklist li:last-child .delete')
+                        .addEventListener('click', e => {
+                            deleteApi(e.currentTarget.parentElement.dataset.id);
+                        });
+            }
+        })
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
