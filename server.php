@@ -18,7 +18,8 @@ switch (strtolower($_SERVER['REQUEST_METHOD'])) {
 }
 
 // retourne la liste des tâches
-function getList() {
+function getList()
+{
     // récupération des tâches
     $tasks = getPDO()->query('SELECT * FROM tasks')->fetchAll(PDO::FETCH_ASSOC);
 
@@ -37,10 +38,11 @@ function getList() {
     echo $html;
 }
 
-function post() {
+function post()
+{
     // récuparation des données sous forme de tableau json
     $rawData = file_get_contents('php://input');
-	$data = json_decode($rawData, true);
+    $data = json_decode($rawData, true);
 
     switch ($data['action']) {
         case 'delete':
@@ -52,26 +54,28 @@ function post() {
 }
 
 // suppression d'une tâche
-function deleteTask($id) {
+function deleteTask($id)
+{
     $stmt = getPDO()->prepare('DELETE FROM tasks WHERE id = :id');
-	$stmt->bindValue(':id', $id, PDO::PARAM_INT);
-    
-	if (!$stmt->execute()) {
+    $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+
+    if (!$stmt->execute()) {
         header('HTTP/1.0 404 Not Found');
         exit;
     }
 }
 
 // création d'une tâche
-function createTask($data) {
+function createTask($data)
+{
     $stmt = getPDO()->prepare('INSERT INTO tasks (title, status, updated_at) VALUES (:title, 1, CURRENT_TIMESTAMP())');
-	$stmt->bindValue(':title', $data['title'], PDO::PARAM_STR);
+    $stmt->bindValue(':title', $data['title'], PDO::PARAM_STR);
 
     if (!$stmt->execute()) {
         header('HTTP/1.0 500 Internal Server Error');
         exit;
     }
-	
+
     $data['id'] = getPDO()->lastInsertId();
     $html = '<li data-id="' . $data['id'] . '">';
     $html .= '<p>' . $data['title'] . '</p>';
@@ -81,12 +85,13 @@ function createTask($data) {
     echo $html;
 }
 
-function getPDO() {
-	static $pdo;
+function getPDO()
+{
+    static $pdo;
 
-	if (!$pdo) {
-		$pdo = new PDO('mysql:host=localhost;dbname=todolist;charset=UTF8mb4', 'todolist', 'todolist');
-	}
-	
-	return $pdo;
+    if (!$pdo) {
+        $pdo = new PDO('mysql:host=localhost;dbname=todolist;charset=UTF8mb4', 'todolist', 'todolist');
+    }
+
+    return $pdo;
 }
