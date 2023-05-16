@@ -22,6 +22,7 @@ function getList()
 {
     // récupération des tâches
     $tasks = getPDO()->query('SELECT * FROM tasks')->fetchAll(PDO::FETCH_ASSOC);
+   // var_dump($tasks);
 
     // construction de la liste HTML des tâches
     $html = '<ul class="tasklist">';
@@ -33,15 +34,17 @@ function getList()
         $html .= '<div class="edit"></div>';
     }
 
-    $html .= '</ul>';
+    $html .= '</ul>'; 
 
     echo $html;
 }
 
+
 function post()
 {
-    // récuparation des données sous forme de tableau json
+    // récupération des données sous forme de tableau json
     $rawData = file_get_contents('php://input');
+
     $data = json_decode($rawData, true);
 
     switch ($data['action']) {
@@ -50,6 +53,43 @@ function post()
 
         case 'create':
             return createTask($data);
+
+        case 'update' :
+            return updateTask($data);
+    }
+}
+
+// création d'une tâche
+function createTask($data)
+{
+    $stmt = getPDO()->prepare('INSERT INTO tasks (title, status, updated_at) VALUES (:title, 1, CURRENT_TIMESTAMP())');
+    $stmt->bindValue(':title', $data['title'], PDO::PARAM_STR);
+
+    if (!$stmt->execute()) {
+          header('HTTP/1.0 500 Internal Server Error');
+          exit;
+    }
+ 
+
+    // affichage de la nouvelle tâche 
+
+    $data['id'] = getPDO()->lastInsertId();
+    $html = '<li data-id="' . $data['id'] . '">';
+    $html .= '<p>' . $data['title'] . '</p>';
+    $html .= '<div class="delete"></div>';
+    $html .= '<div class="edit"></div>';
+    echo $html;
+}
+
+// Mise à jour d'une tâche
+function updateTask($data) 
+{
+    $stmt = getPDO()->prepare('UPDATE tasks SET title = :title  WHERE `id` = :id');
+    $stmt->bindValue(':title', $data['title'] );
+    $stmt->bindValue(':id', $data['id']);
+    if (!$stmt->execute()) {
+        header('HTTP/1.0 404 Not Found');
+        exit;
     }
 }
 
@@ -65,25 +105,6 @@ function deleteTask($id)
     }
 }
 
-// création d'une tâche
-function createTask($data)
-{
-    $stmt = getPDO()->prepare('INSERT INTO tasks (title, status, updated_at) VALUES (:title, 1, CURRENT_TIMESTAMP())');
-    $stmt->bindValue(':title', $data['title'], PDO::PARAM_STR);
-
-    if (!$stmt->execute()) {
-        header('HTTP/1.0 500 Internal Server Error');
-        exit;
-    }
-
-    $data['id'] = getPDO()->lastInsertId();
-    $html = '<li data-id="' . $data['id'] . '">';
-    $html .= '<p>' . $data['title'] . '</p>';
-    $html .= '<div class="delete"></div>';
-    $html .= '<div class="edit"></div>';
-
-    echo $html;
-}
 
 function getPDO()
 {

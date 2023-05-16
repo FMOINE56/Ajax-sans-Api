@@ -10,13 +10,11 @@
 </head>
 
 <body>
-
     <header>
         <h1>Task manager</h1>
     </header>
 
     <main>
-
         <div class="create-task-container">
             <button>nouvelle tâche</button>
         </div>
@@ -29,7 +27,7 @@
         </div>
 
         <ul class="tasklist">
-            <!-- l'insertion des tâches est dynamique -->
+            <!--Insertion des tâches dynamique : méthode getList()-->
         </ul>
 
         <div class="modal-dialog">
@@ -41,26 +39,41 @@
                 <button>ajouter</button>
             </form>
         </div>
-
+        <div class="modal-dialog" id="edit">
+            <form method="post">
+                <h2>modification d'une tâche </h2>
+                <label for="task-title" class="screen-reader-only">titre de la tâche</label>
+                <input name="id" id="task-id-update" type="hidden">
+                <input name="title" id="task-title-update" type="text" required>
+                <button>modifier</button>
+            </form>
+        </div>
     </main>
 
+    <!-- Partie javascript -->
     <script>
         function init() {
-            document.querySelector('.create-task-container button')
-                .addEventListener('click', e => {
-                    document.querySelector('.modal-dialog').classList.add('show');
-                });
 
-            document.querySelector('.modal-dialog form')
-                .addEventListener('submit', e => {
-                    e.preventDefault();
-                    const data = {
-                        id: document.querySelector('#task-id').value,
-                        title: document.querySelector('#task-title').value
-                    };
-                    createOrUpdateApi(data);
-                    document.querySelector('.modal-dialog').classList.remove('show');
-                });
+            // Evènement sur le bouton 'nouvelle tâche' : ajout de la classe show 
+            document.querySelector('.create-task-container button').addEventListener('click', e => {
+                // reset de la modale avant de l'afficher
+                document.querySelector('.modal-dialog form').reset();
+                document.querySelector('.modal-dialog').classList.add('show');
+            });
+
+            // Evènement sur l'envoi du formulaire de nouvelle tâche
+            document.querySelector('.modal-dialog form').addEventListener('submit', e => {
+                e.preventDefault();
+                const data = {
+                    id: document.querySelector('#task-id').value,
+                    title: document.querySelector('#task-title').value
+                };
+
+                createOrUpdateApi(data);
+                
+                // Suppression de la classe 'show'
+                document.querySelector('.modal-dialog').classList.remove('show');
+            });
 
             getListApi();
         }
@@ -69,7 +82,7 @@
         async function getListApi() {
             fetch('http://127.0.0.1:8000')
                 .then(response => {
-                    return response.text();
+                    return response.text();      
                 })
                 .then(html => {
                     document.querySelector('.tasklist').outerHTML = html;
@@ -77,13 +90,36 @@
                     // gestion des boutons delete
                     document.querySelectorAll('.delete').forEach(el => {
                         el.addEventListener('click', e => {
-                            deleteApi(e.currentTarget.parentElement.dataset.id);
+                            console.log(e.currentTarget.parentElement.dataset.id) ; 
+                            deleteApi(e.currentTarget.parentElement.dataset.id);  
+
                         });
                     });
+
+                    //gestion des boutons edit
+                    document.querySelectorAll('.edit').forEach(el => {
+                        el.addEventListener('click', e => {
+                            document.querySelector('#edit').classList.add('show')
+                            document.getElementById('task-title-update').value = e.currentTarget.parentElement.querySelector('p').textContent ;
+                            document.getElementById('task-id-update').value = e.currentTarget.parentElement.dataset.id;
+
+                            // Evènement sur l'envoi du formulaire de modification
+                            document.querySelector('#edit form').addEventListener('submit', e => {
+                                e.preventDefault();
+                                const data = {
+                                    id: document.querySelector('#task-id-update').value,
+                                    title: document.querySelector('#task-title-update').value
+                                };
+                            createOrUpdateApi(data);
+                            document.querySelector('#edit').classList.remove('show');
+                            });
+                        });
+                    });
+
                 });
         }
 
-        // suppression en utilisant POST
+        // suppression en utilisant POST en mode asynchrone
         async function deleteApi(id) {
             fetch('http://127.0.0.1:8000', {
                     method: 'POST',
@@ -102,9 +138,8 @@
                 });
         }
 
-        // création d'une tâche
+        // création ou modification d'une tâche
         async function createOrUpdateApi(data) {
-
             data.action = data.id ? 'update' : 'create';
 
             fetch('http://127.0.0.1:8000', {
@@ -116,21 +151,27 @@
                 })
                 .then(response => {
                     if (response.ok) {
+                        // on affiche le message de succès
+                        document.querySelector('.success').removeAttribute('hidden');
                         return response.text();
                     }
+                    else {// on affiche le message d'erreur
+                        document.querySelector('.danger').removeAttribute('hidden');
                     return null;
+                    }
                 })
                 .then(html => {
                     if (html) {
                         // insertion de la nouvelle tâche
                         document.querySelector('.tasklist').insertAdjacentHTML('beforeend', html);
-                        // ah ben oui, il faut ajouter le clic sur le bouton delete
+                        // Ajout de l'évènement sur le bouton delete
                         document.querySelector('.tasklist li:last-child .delete')
                             .addEventListener('click', e => {
                                 deleteApi(e.currentTarget.parentElement.dataset.id);
                             });
                     }
                 })
+                .then (getListApi())
         }
 
         document.addEventListener('DOMContentLoaded', init);
