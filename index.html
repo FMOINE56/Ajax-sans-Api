@@ -20,7 +20,7 @@
         </div>
 
         <div class="message success" hidden>
-            la nouvelle tâche a bien été ajoutée
+            la tâche a bien été ajoutée ou modifiée
         </div>
         <div class="message danger" hidden>
             oops, impossible de sauvegarder la tâche
@@ -90,9 +90,7 @@
                     // gestion des boutons delete
                     document.querySelectorAll('.delete').forEach(el => {
                         el.addEventListener('click', e => {
-                            console.log(e.currentTarget.parentElement.dataset.id) ; 
                             deleteApi(e.currentTarget.parentElement.dataset.id);  
-
                         });
                     });
 
@@ -102,6 +100,9 @@
                             document.querySelector('#edit').classList.add('show')
                             document.getElementById('task-title-update').value = e.currentTarget.parentElement.querySelector('p').textContent ;
                             document.getElementById('task-id-update').value = e.currentTarget.parentElement.dataset.id;
+                            // remise à 0 des modales
+                            document.querySelector('.success').hidden=true;
+                            document.querySelector('.danger').hidden=true;
 
                             // Evènement sur l'envoi du formulaire de modification
                             document.querySelector('#edit form').addEventListener('submit', e => {
@@ -131,15 +132,19 @@
                         id: id
                     })
                 })
-                .then(response => {
+                .then(response => {console.log(response);
                     if (response.ok) {
                         document.querySelector('[data-id="' + id + '"]').remove();
                     }
                 });
+                // remise à 0 des modales
+                document.querySelector('.success').hidden=true;
+                document.querySelector('.danger').hidden=true;
         }
 
         // création ou modification d'une tâche
         async function createOrUpdateApi(data) {
+
             data.action = data.id ? 'update' : 'create';
 
             fetch('http://127.0.0.1:8000', {
@@ -164,6 +169,26 @@
                     if (html) {
                         // insertion de la nouvelle tâche
                         document.querySelector('.tasklist').insertAdjacentHTML('beforeend', html);
+                        // Ajout de l'évènement sur le bouton edit
+                        document.querySelectorAll('.edit').forEach(el => {
+                        el.addEventListener('click', e => {
+                            document.querySelector('#edit').classList.add('show')
+                            document.getElementById('task-title-update').value = e.currentTarget.parentElement.querySelector('p').textContent ;
+                            document.getElementById('task-id-update').value = e.currentTarget.parentElement.dataset.id;
+
+                            // Evènement sur l'envoi du formulaire de modification
+                            document.querySelector('#edit form').addEventListener('submit', e => {
+                                e.preventDefault();
+                                const data = {
+                                    id: document.querySelector('#task-id-update').value,
+                                    title: document.querySelector('#task-title-update').value
+                                };
+                            createOrUpdateApi(data);
+                           // document.querySelector('#edit').classList.removeAttribute('show');
+                            });
+                        });
+
+                    });
                         // Ajout de l'évènement sur le bouton delete
                         document.querySelector('.tasklist li:last-child .delete')
                             .addEventListener('click', e => {

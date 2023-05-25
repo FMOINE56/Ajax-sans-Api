@@ -22,7 +22,6 @@ function getList()
 {
     // récupération des tâches
     $tasks = getPDO()->query('SELECT * FROM tasks')->fetchAll(PDO::FETCH_ASSOC);
-   // var_dump($tasks);
 
     // construction de la liste HTML des tâches
     $html = '<ul class="tasklist">';
@@ -46,9 +45,11 @@ function post()
     $rawData = file_get_contents('php://input');
 
     $data = json_decode($rawData, true);
+    var_dump($data);
 
     switch ($data['action']) {
         case 'delete':
+            var_dump($data['id']);
             return deleteTask($data['id']);
 
         case 'create':
@@ -62,7 +63,7 @@ function post()
 // création d'une tâche
 function createTask($data)
 {
-    $stmt = getPDO()->prepare('INSERT INTO tasks (title, status, updated_at) VALUES (:title, 1, CURRENT_TIMESTAMP())');
+    $stmt = getPDO()->prepare('INSERT INTO tasks (title, status, created_at) VALUES (:title, 1, CURRENT_TIMESTAMP())');
     $stmt->bindValue(':title', $data['title'], PDO::PARAM_STR);
 
     if (!$stmt->execute()) {
@@ -97,6 +98,7 @@ function updateTask($data)
 function deleteTask($id)
 {
     $stmt = getPDO()->prepare('DELETE FROM tasks WHERE id = :id');
+    var_dump($stmt);
     $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 
     if (!$stmt->execute()) {
